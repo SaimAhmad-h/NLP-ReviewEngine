@@ -1,3 +1,7 @@
+## 📓 View Full Notebook
+👉 [Click here to view the complete notebook](https://colab.research.google.com/drive/13Bd7saLEyucSSqECf0lIhfZpDQSyyYR0?usp=sharing)
+
+
 # 🛍️ Customer Reviews Intelligence System
 ### NLP & Machine Learning Pipeline for E-Commerce Feedback Analysis
 
