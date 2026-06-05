@@ -90,11 +90,11 @@ Attempts to load the real CSV. Falls back to a synthetic dataset of 55 unique re
 → test stays: 11 genuinely unseen reviews
 ```
 
-**Synthetic dataset sentiment distribution:**
+**Synthetic dataset sentiment distribution (actual output):**
 ```
-Negative    ~120
-Neutral     ~60
-Positive    ~90
+Negative    125
+Neutral      75
+Positive     75
 ```
 
 ### Cell 4 — Text Preprocessing Pipeline
@@ -106,8 +106,8 @@ Raw Text → Lowercase → Remove URLs → Remove Punctuation
 
 Sample:
 ```
-BEFORE: "It's fine, does the job."
-AFTER : "fine job"
+BEFORE: "Great material and stitching, very happy with purchase."
+AFTER : "great material stitching happy purchase"
 
 BEFORE: "Bahut achha product hai, zaroor kharidein."
 AFTER : "bahut achha product hai zaroor kharidein"
@@ -118,19 +118,49 @@ AFTER : "bahut achha product hai zaroor kharidein"
 ### Cell 5 — Preprocessing Visualisation
 Histograms comparing word count distributions before and after preprocessing.
 
+```
+Average words BEFORE: 6.84
+Average words AFTER : 4.95
+```
+
 ### Cell 6 — Feature Extraction: BoW & TF-IDF
 Converts cleaned text to numerical matrices using leakage-free train/test splits.
 
-**Top 15 tokens by frequency include:**
 ```
-product, quality, hai, delivery, refund, size,
-fit, great, item, material, wrong, average, dress, bahut, please
+Train: 264  |  Test: 11
+BoW    matrix shape: (264, 136)
+TF-IDF matrix shape: (264, 136)
+```
+
+**Top 15 tokens by frequency (BoW):**
+```
+quality             : 60
+product             : 54
+great               : 30
+wrong               : 24
+purchase            : 24
+hai                 : 24
+average             : 24
+worst               : 18
+fit                 : 18
+item                : 18
+absolutely          : 18
+delivery            : 18
+stitching           : 18
+size                : 18
+please              : 18
 ```
 
 ### Cell 7 — BoW vs TF-IDF Comparison (Naive Bayes)
 Naive Bayes trained on both feature sets and evaluated on genuinely unseen test reviews.
 
-> Both methods are compared on the same unseen test set. TF-IDF generally outperforms BoW because it down-weights common words and highlights discriminative terms.
+```
+        Accuracy  F1 Score
+BoW       0.5455    0.5388
+TF-IDF    0.5455    0.5388
+```
+
+> Both methods are compared on the same unseen test set. On a larger real-world dataset, TF-IDF generally outperforms BoW because it down-weights common words and highlights discriminative terms.
 
 ### Cell 8 — VADER Rule-Based Sentiment
 Applies the VADER lexicon to the full dataset without any training.
@@ -138,22 +168,42 @@ Applies the VADER lexicon to the full dataset without any training.
 | Metric | Score |
 |---|---|
 | Accuracy | 0.6545 |
-| F1 Score (Weighted) | **0.66** |
+| F1 Score (Weighted) | **0.6552** |
 
 ```
-              precision    recall    f1-score
-Negative        0.81        0.65      0.72
-Neutral         0.36        0.40      0.38
-Positive        0.62        0.80      0.70
+              precision    recall  f1-score   support
+
+    Negative       0.83      0.74      0.78       125
+     Neutral       0.44      0.41      0.43        75
+    Positive       0.60      0.75      0.67        75
+
+    accuracy                           0.65       275
+   macro avg       0.63      0.63      0.63       275
+weighted avg       0.66      0.65      0.66       275
 ```
 
-> VADER struggles most with **Neutral** reviews (F1: 0.38) and Roman Urdu text — expected behaviour for an English-only lexicon tool.
+> VADER struggles most with **Neutral** reviews and Roman Urdu text — expected behaviour for an English-only lexicon tool.
 
 ### Cell 9 — VADER Confusion Matrix
 Heatmap of VADER predictions vs actual labels.
 
 ### Cell 10 — Logistic Regression Sentiment
 Supervised ML model trained on TF-IDF features on the leakage-free training set.
+
+```
+Accuracy : 0.3636
+F1 Score : 0.3189
+
+              precision    recall  f1-score   support
+
+    Negative       0.38      0.60      0.46         5
+     Neutral       0.50      0.33      0.40         3
+    Positive       0.00      0.00      0.00         3
+
+    accuracy                           0.36        11
+   macro avg       0.29      0.31      0.29        11
+  weighted avg       0.31      0.36      0.32        11
+```
 
 > LR scores on the small 11-sample test set are not statistically reliable. On the full Kaggle dataset (23,000+ reviews), expected LR F1 is 0.85–0.91.
 
@@ -165,21 +215,36 @@ Intent labels assigned via keyword matching rules:
 
 | Intent | Trigger Keywords |
 |---|---|
-| Refund Request | refund, money back, paisa wapas, charged twice |
-| Delivery Issue | delivery, shipping, late, kab ayega, never arrived, missing |
-| Complaint | broken, damaged, worst, terrible, ghatia, kharab, zipper |
+| Refund Request | refund, money back, paisa wapas, charged twice, billing |
+| Delivery Issue | delivery, shipping, arrived, late, kab ayega, package, not received, never arrived, missing |
+| Complaint | broken, damaged, wrong item, worst, terrible, unacceptable, poor, ghatia, kharab, zipper, wrong color, broke |
 | General Query | everything else |
 
-**Intent distribution:**
+**Intent distribution (actual output):**
 ```
-General Query     ~120
-Complaint         ~80
-Refund Request    ~30
-Delivery Issue    ~24
+General Query     150
+Complaint          99
+Refund Request     13
+Delivery Issue     13
 ```
 
 ### Cell 13 — Intent Classifier
 Logistic Regression trained on TF-IDF features for 4-class intent prediction using the leakage-free split.
+
+```
+                precision    recall  f1-score   support
+
+     Complaint       0.00      0.00      0.00         3
+Delivery Issue       0.00      0.00      0.00         1
+ General Query       0.60      1.00      0.75         6
+Refund Request       0.00      0.00      0.00         1
+
+      accuracy                           0.55        11
+     macro avg       0.15      0.25      0.19        11
+  weighted avg       0.33      0.55      0.41        11
+```
+
+> Low scores on minority intent classes (Refund, Delivery) are expected with only 1 sample each in the 11-sample test set — not statistically meaningful.
 
 ### Cell 14 — Intent Confusion Matrix
 4×4 heatmap of intent predictions vs actual labels on unseen test set.
@@ -187,30 +252,41 @@ Logistic Regression trained on TF-IDF features for 4-class intent prediction usi
 ### Cell 15 — NMF Topic Modelling
 Unsupervised discovery of 5 topics from the TF-IDF matrix (1000 features, min_df=2, max_df=0.90).
 
-**Topics discovered:**
+**Raw topics discovered (actual output):**
 
-| Topic | Label | Sample Keywords |
+| Topic | Assigned Label | Top Keywords |
 |---|---|---|
-| 1 | Product Quality | quality, material, stitching, price, worth |
-| 2 | Sizing & Fit | fit, size, guide, true, expected |
-| 3 | Delivery & Shipping | delivery, shipping, arrived, package, late |
-| 4 | Returns & Refunds | refund, return, damaged, replacement, paisa |
-| 5 | General Feedback | average, okay, decent, moderate, normal |
+| 1 | Product Quality | quality, average, price, hai, theek, thak, better, expected, reasonable, terrible |
+| 2 | Product Quality | great, happy, bad, fine, material, stitching, work, beautiful, purchase, fitting |
+| 3 | Delivery & Shipping | product, delivery, fast, okay, shown, exactly, love, special, nothing, arrived |
+| 4 | Sizing & Fit | worst, wrong, ever, completely, experience, size, better, never, buying, photo |
+| 5 | Returns & Refunds | money, waste, complete, buy, nothing, described, special, okay, decent, color |
 
-> Topic labels are assigned by inspecting actual top keywords — not hardcoded. A `label_topic()` function matches keywords to the most appropriate label automatically.
+> Topic labels are assigned automatically by the `label_topic()` function, which matches each topic's keywords to the most appropriate category — not hardcoded.
 
 ### Cell 16 — Topic Distribution Chart
-Bar chart of how reviews are distributed across the 5 NMF topics.
+Bar chart of how reviews are distributed across the NMF topics.
+
+**Document-Topic Distribution (actual output):**
+```
+Product Quality        103
+Sizing & Fit            78
+Delivery & Shipping     73
+Returns & Refunds       21
+```
+
+> Note: "General Feedback" did not emerge as a dominant topic on this synthetic dataset. Topic separation improves significantly on larger real-world datasets.
 
 ### Cell 17 — Comprehensive Evaluation Summary
 
 | Model | Accuracy | Precision | Recall | F1 Score |
 |---|---|---|---|---|
 | VADER (Rule-Based) | 0.6545 | 0.6624 | 0.6545 | **0.6552** |
-| LR Sentiment (TF-IDF) | — | — | — | — |
-| LR Intent (TF-IDF) | — | — | — | — |
+| LR Sentiment (TF-IDF) | 0.3636 | 0.3068 | 0.3636 | 0.3189 |
+| LR Intent (TF-IDF) | 0.5455 | 0.3273 | 0.5455 | 0.4091 |
 
-> **Most reliable metric:** VADER F1 Score (Weighted) = **0.66** — evaluated on the full dataset with no training bias. LR scores on 11-sample test set are not statistically meaningful and are not reported here.
+**Most Suitable Metric: F1 Score (Weighted)**
+> Class-imbalanced dataset — weighted F1 balances Precision & Recall across all classes fairly. VADER is evaluated on the full 275-sample dataset making it the most statistically reliable score. LR scores are based on only 11 unseen test samples and should be interpreted with caution.
 
 ### Cell 18 — Model Comparison Chart
 Grouped bar chart visualising all four metrics across all three models.
@@ -223,11 +299,11 @@ Live web app that runs all three models on any typed review.
 Input:  "My order never arrived, I want a refund!"
 
 Output:
-  Sentiment → 😞 Negative  (VADER: -0.71)
-              🤖 ML Prediction: Negative
-  Intent    → 🏷️ Refund Request
+  Sentiment → 😞 Negative  (VADER score: -0.71)
+              🤖 ML Prediction: Negative (confidence: 0.xx)
+  Intent    → 🏷️ Refund Request  (confidence: 0.xx)
   Topic     → 📌 Returns & Refunds
-              🔑 Keywords: refund, return, damaged, replacement...
+              🔑 Keywords: money, waste, complete, buy, nothing...
 ```
 
 Launched with `share=True` — generates a public Gradio URL valid for 7 days.
@@ -236,11 +312,11 @@ Launched with `share=True` — generates a public Gradio URL valid for 7 days.
 
 ## 📊 Results Summary
 
-| Model | F1 Score | Notes |
-|---|---|---|
-| VADER (Rule-Based) | **0.66** | Evaluated on full dataset. Most reliable score. |
-| LR Sentiment (TF-IDF) | — | Test set too small (11 samples) for reliable reporting. |
-| LR Intent (TF-IDF) | — | Same reason. Expected 0.80+ on real dataset. |
+| Model | Accuracy | F1 Score | Notes |
+|---|---|---|---|
+| VADER (Rule-Based) | 0.6545 | **0.6552** | Evaluated on full 275-sample dataset. Most reliable score. |
+| LR Sentiment (TF-IDF) | 0.3636 | 0.3189 | 11-sample test set — not statistically reliable. |
+| LR Intent (TF-IDF) | 0.5455 | 0.4091 | 11-sample test set — not statistically reliable. |
 
 **On the real Women's Clothing dataset, expect approximately:**
 - LR Sentiment: 0.85–0.91 F1
@@ -251,20 +327,22 @@ Launched with `share=True` — generates a public Gradio URL valid for 7 days.
 
 ## ⚠️ Known Limitations
 
-1. **Small synthetic test set** — With only 11 unique unseen test reviews, LR scores fluctuate significantly with each wrong prediction and are not statistically reliable.
+1. **Small synthetic test set** — With only 11 unique unseen test reviews, LR scores fluctuate significantly with each wrong prediction and are not statistically reliable. VADER, evaluated on all 275 samples, is the most trustworthy metric.
 
 2. **Roman Urdu handling** — NLTK stopwords and VADER are English-only. Roman Urdu tokens are not cleaned or understood by VADER, reducing accuracy on mixed-language reviews.
 
 3. **Intent labels from rules** — Intent ground truth is generated by the same keyword rules used at inference time, meaning the intent classifier learns to replicate a rule-based system rather than true intent understanding.
 
-4. **NMF on small dataset** — Topic separation is less clean on small datasets. Topics may overlap or not perfectly align with real-world categories.
+4. **NMF on small dataset** — Topic separation is less clean on small datasets. On the synthetic set, only 4 of the 5 possible topic labels appear in the document-topic distribution. Topics may overlap or not perfectly align with real-world categories.
+
+5. **Imbalanced intent classes** — Refund Request and Delivery Issue each have only 13 samples in the full dataset and only 1 sample each in the test set, making per-class evaluation for these intents unreliable.
 
 ---
 
 ## 🧠 Key Concepts
 
 **Why TF-IDF over Bag of Words?**
-BoW treats all words equally. TF-IDF penalises words that appear in nearly every document and rewards rare but discriminative terms — giving the classifier stronger signal.
+BoW treats all words equally. TF-IDF penalises words that appear in nearly every document and rewards rare but discriminative terms — giving the classifier stronger signal. On this small synthetic dataset both methods score identically (0.5455 accuracy); the advantage of TF-IDF is more pronounced on larger corpora.
 
 **Why Logistic Regression?**
 Fast, interpretable, and strong on text classification. Word-level coefficients directly reveal which tokens drive each prediction.
